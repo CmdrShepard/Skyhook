@@ -1,9 +1,9 @@
 from flask import Flask
 from flask.ext.sqlalchemy import SQLAlchemy
-from instance.config import ProductionConfig
+from instance.config import DebugConfig
 
 app = Flask(__name__)
-app.config.from_object(ProductionConfig)
+app.config.from_object(DebugConfig)
 db = SQLAlchemy(app)
 
 from skyhook.tvdb import TvDB

@@ -1,5 +1,9 @@
 from sqlalchemy.dialects.postgresql import JSON
 from skyhook import db
+from skyhook.logger import Logger
+import datetime
+
+logging = Logger(__name__)
 
 
 class Search(db.Model):
@@ -22,6 +26,7 @@ class Show(db.Model):
     __tablename__ = 'skyhook_shows'
 
     id = db.Column(db.Integer, primary_key=True)
+    last_modified = db.Column(db.DateTime, default=datetime.datetime.utcnow)
     tvdb_id = db.Column(db.Integer)
     language = db.Column(db.String, primary_key=True)
     title = db.Column(db.String)
@@ -119,6 +124,7 @@ class Show(db.Model):
                    .filter_by(show_title=show_title)
                    .order_by(Episode.absolute_number.desc()).first()
                    )
+        #logging.debug(episode)
         if episode is None or episode.absolute_number is None:
             return 0
         else:
@@ -171,7 +177,7 @@ class Episode(db.Model):
     tvdb_show_id = db.Column(db.Integer)
     tvdb_id = db.Column(db.Integer)
     season_id = db.Column(db.Integer, db.ForeignKey('skyhook_seasons.id'), nullable=False)
-    season_number = db.Column(db.Integer) 
+    season_number = db.Column(db.Integer)
     number = db.Column(db.Integer)
     absolute_number = db.Column(db.Integer)
     title = db.Column(db.String)
@@ -210,10 +216,14 @@ class Episode(db.Model):
         # FIXME
         season = self.get_season()
         self.season_number = season.number
+        #logging.debug('Season number: ' + str(season.number))
         if self.absolute_number is None:
             if int(season.number) > 0:
                 self.absolute_number = Show.get_last_absolute_episode_number(show_title=show_title)
                 self.absolute_number += 1
+
+        if int(season.number) > 0 and self.absolute_number is None:
+            logging.error('Absolute number is None for show "' + self.show_title + '": season ' + str(self.get_season().number) + ' episode ' + str(self.number))
 
     def __repr__(self):
         return '<Episode %r>' % self.title

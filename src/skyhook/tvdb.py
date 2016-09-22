@@ -215,7 +215,7 @@ class TvDB:
         sonarr_episodes = []
         for season in original_show.values():
             for episode in season.values():
-                if int(episode['seasonnumber']) not in episode_seasons:
+                if episode['seasonnumber'] not in episode_seasons:
                     episode_seasons.append(int(episode['seasonnumber']))
                 sonarr_episode = {
                     'tvdbShowId': result['id'],
@@ -249,6 +249,11 @@ class TvDB:
 
                 if int(episode['seasonnumber']) > 0:
                     sonarr_episode['seasonNumber'] = int(episode['seasonnumber'])
+
+                #if episode['absolute_number'] is None:
+                #    if int(episode['seasonnumber']) > 0:
+                #        sonarr_episode['absoluteEpisodeNumber'] = Show.get_last_absolute_episode_number(show_title=sonarr_format['title'])
+                #        sonarr_episode['absoluteEpisodeNumber'] += 1
 
                 if episode['absolute_number'] is not None:
                     sonarr_episode['absoluteEpisodeNumber'] = episode['absolute_number']
@@ -338,7 +343,7 @@ class TvDB:
             sonarr_seasons = []
             for season in original_show.values():
                 for org_episode in season.values():
-                    episode = org_episode;
+                    episode = org_episode
                     break;
                 # FIXME: episode = season[1]
                 sonarr_seasons.append({
@@ -351,7 +356,8 @@ class TvDB:
         if len(episode_seasons) > len(sonarr_format['seasons']):
             current_seasons = []
             for season in sonarr_format['seasons']:
-                current_seasons.append(int(season['seasonNumber']))
+                if 'seasonnumber' in season:
+                    current_seasons.append(int(season['seasonnumber']))
 
             for season in episode_seasons:
                 if season not in current_seasons:

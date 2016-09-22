@@ -27,7 +27,7 @@ def handle_search(search_string, results, with_episodes=True):
         language = sonarr_format['language']
         show = SonarrCache.get_cached_show(tvdb_id=result['id'], language=result['language'])
         sonarr_results.append(show)
-	#sonarr_results.append(sonarr_format)
+        #sonarr_results.append(sonarr_format)
     for language in search_results:
         SonarrCache.update_search(search_string, language, search_results[language])
     return sonarr_results
@@ -55,7 +55,8 @@ class SonarrCache:
     @classmethod
     def update_search(cls, search_string, language, results):
         search_string = search_string.lower()
-        if cls.has_cached_results(search_string=search_string, language=language):
+        logging.debug('Attempting to update Sonarr search cache for search string "' + str(search_string) + '"')
+        if cls.has_cached_results(search_string=search_string, language=language, check_date=False):
             logging.debug('Updating Sonarr search cache for search string "' + search_string + '" and language "' +
                           language + '": ' + str(len(results)) + ' Results')
             instance = cls.get_cached_results(search_string=search_string, language=language)
@@ -95,6 +96,7 @@ class SonarrCache:
             show.rating_value = sonarr_format['rating']['value']
             show.rating_count = sonarr_format['rating']['count']
             show.images = sonarr_format['images']
+            show.last_modified = datetime.datetime.now()
             db.session.commit()
             logging.debug('Updated Sonarr show in cache: "' + show.title + '"')
 
@@ -237,7 +239,7 @@ class SonarrCache:
         return mapped_shows
 
     @classmethod
-    def get_cached_show(cls, tvdb_id, language):
+    def get_cached_show(cls, tvdb_id, language, update_show=False):
         try:
             result = None
             if language is None:
@@ -261,6 +263,18 @@ class SonarrCache:
             if result is None:
                 logging.error('Cached Sonarr show not found for TVDB ID "' + str(tvdb_id))
                 raise CacheShowLanguage
+
+            if update_show:
+                last_modified_difference = (datetime.datetime.now() - result.last_modified).total_seconds()
+                if last_modified_difference > app.config['SHOW_CACHE_TIME']:
+                    logging.debug('Cached Sonarr show last modified date too long ago: ' + str(last_modified_difference) + ' seconds, attempting to update show info')
+                    search_results = tvdb.search(None, None, tvdb_id=tvdb_id)
+                    if search_results is not None:
+                        search_result = handle_search(tvdb_id, search_results)[0]
+                        logging.debug('Found updated show information for TVDB ID "' + str(tvdb_id) + '", returning updated show info')
+                        return search_result
+                    else:
+                        logging.debug('Unable to update show information, returning cached show instead')
             logging.debug('Found cached Sonarr show for TVDB ID "' + str(tvdb_id) + '" and language "' + language + '"')
             return result
         except NoResultFound:
@@ -268,7 +282,7 @@ class SonarrCache:
                                 language + '"')
 
     @classmethod
-    def has_cached_results(cls, search_string, language=None):
+    def has_cached_results(cls, search_string, language=None, check_date=True):
         search_string = search_string.lower()
         try:
             if language is None:
@@ -284,7 +298,8 @@ class SonarrCache:
             if result is None:
                 logging.debug('Did not find any Sonarr cached search results for "' + str(search_string) +
                               '" and language "' + (language if language is not None else 'None') + '"')
-            elif result.date + datetime.timedelta(0, app.config['SEARCH_CACHE_TIME']) < datetime.datetime.now(pytz.utc):
+                return False
+            elif check_date and (result.date + datetime.timedelta(0, app.config['SEARCH_CACHE_TIME']) < datetime.datetime.now(pytz.utc)):
                 logging.debug('Found cached Sonarr search result for "' + str(search_string) + '" and language "' +
                               (language if language is not None else 'None') + '", but cache time was past')
                 return False

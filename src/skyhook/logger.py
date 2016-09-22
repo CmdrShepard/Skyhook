@@ -19,9 +19,13 @@ class Logger(logging.getLoggerClass()):
             self.slack = slackweb.Slack(app.config['SLACK_WEBHOOK'])
         else:
             self.slack = None
+        formatter = logging.Formatter('%(asctime)s [%(name)s] [%(levelname)s] %(message)s')
         ch = logging.StreamHandler(sys.stdout)
         ch.setLevel(logging.DEBUG)
-        formatter = logging.Formatter('%(asctime)s [%(name)s] [%(levelname)s] %(message)s')
+        ch.setFormatter(formatter)
+        self.addHandler(ch)
+        ch = logging.FileHandler(filename='/tmp/skyhook.log')
+        ch.setLevel(logging.DEBUG)
         ch.setFormatter(formatter)
         self.addHandler(ch)
 
