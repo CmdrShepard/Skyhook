@@ -25,7 +25,7 @@ class Search(db.Model):
 class Show(db.Model):
     __tablename__ = 'skyhook_shows'
 
-    id = db.Column(db.Integer, primary_key=True)
+    id = db.Column(db.Integer, primary_key=True, autoincrement=True)
     last_modified = db.Column(db.DateTime, default=datetime.datetime.utcnow)
     tvdb_id = db.Column(db.Integer)
     language = db.Column(db.String, primary_key=True)
