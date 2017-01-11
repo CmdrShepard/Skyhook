@@ -35,7 +35,7 @@ class Show(db.Model):
     first_aired = db.Column(db.DateTime(timezone=True))
     tv_rage_id = db.Column(db.Integer)
     tv_maze_id = db.Column(db.Integer)
-    status = db.Column(db.String)
+    status = db.Column(db.String, default='')
     runtime = db.Column(db.Integer)
     time_of_day = db.Column(db.Integer)
     network = db.Column(db.String)
